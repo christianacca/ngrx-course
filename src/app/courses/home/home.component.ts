@@ -14,42 +14,20 @@ import {CourseEntityService} from '../services/course-entity.service';
     styleUrls: ['./home.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent {
 
-    promoTotal$: Observable<number>;
+    promoTotal$ = this.coursesService.promoCourses$.pipe(
+      map(courses => courses.length)
+    );
 
-    beginnerCourses$: Observable<Course[]>;
+    beginnerCourses$ = this.coursesService.beginnerCourses$;
 
-    advancedCourses$: Observable<Course[]>;
+    advancedCourses$ = this.coursesService.advancedCourses$;
 
     constructor(
       private dialog: MatDialog,
       private coursesService: CourseEntityService) {
-
     }
-
-    ngOnInit() {
-      this.reload();
-    }
-
-  reload() {
-
-    this.beginnerCourses$ = this.coursesService.entities$
-      .pipe(
-        map(courses => courses.filter(course => course.category == 'BEGINNER'))
-      );
-
-    this.advancedCourses$ = this.coursesService.entities$
-      .pipe(
-        map(courses => courses.filter(course => course.category == 'ADVANCED'))
-      );
-
-    this.promoTotal$ = this.coursesService.entities$
-        .pipe(
-            map(courses => courses.filter(course => course.promo).length)
-        );
-
-  }
 
   onAddCourse() {
 
