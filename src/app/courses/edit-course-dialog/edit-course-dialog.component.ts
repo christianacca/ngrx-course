@@ -2,9 +2,9 @@ import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Course} from '../model/course';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {Observable} from 'rxjs';
-import {CoursesHttpService} from '../services/courses-http.service';
+import {Subject} from 'rxjs';
 import {CourseEntityService} from '../services/course-entity.service';
+import { map, exhaustMap } from 'rxjs/operators';
 
 @Component({
     selector: 'course-dialog',
@@ -22,6 +22,7 @@ export class EditCourseDialogComponent {
 
     mode: 'create' | 'update';
 
+    saves = new Subject<any>();
     saving$ = this.coursesService.loading$;
 
     constructor(
@@ -51,42 +52,29 @@ export class EditCourseDialogComponent {
                 iconUrl: ['', Validators.required]
             });
         }
+
+        // todo: handle errors:
+        // - show user message
+        // - allow user to retry
+        // (tech note: make sure observable chain does not terminate due to error )
+        this.saves.pipe(
+            map<any, Course>(() => ({
+                ...this.course,
+                ...this.form.value
+            })),
+            exhaustMap(course => this.doSave(course))
+          )
+          // no need to unsubscribe here as stream dies with component
+          .subscribe(_ => {
+                this.dialogRef.close();
+          });
     }
 
     onClose() {
         this.dialogRef.close();
     }
 
-    onSave() {
-
-        const course: Course = {
-            ...this.course,
-            ...this.form.value
-        };
-
-        if (this.mode == 'update') {
-
-            this.coursesService.update(course);
-
-            // close immediately doing an optimistic save
-            this.dialogRef.close();
-        } else if (this.mode == 'create') {
-
-            this.coursesService.add(course)
-                .subscribe(
-                    newCourse => {
-
-                        console.log('New Course', newCourse);
-
-                        this.dialogRef.close();
-
-                    }
-                );
-
-        }
-
-
+    private doSave(course: Course) {
+        return this.mode === 'create' ? this.coursesService.add(course) : this.coursesService.update(course);
     }
-
-
 }

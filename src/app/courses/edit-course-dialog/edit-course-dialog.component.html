@@ -78,7 +78,7 @@
 
   <button mat-raised-button color="primary"
           [disabled]="!form?.valid || (this.saving$ | async)"
-          (click)="onSave()">
+          (click)="saves.next()">
     Save
   </button>
 
