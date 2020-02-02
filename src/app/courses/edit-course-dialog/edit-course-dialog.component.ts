@@ -22,7 +22,7 @@ export class EditCourseDialogComponent {
 
     mode: 'create' | 'update';
 
-    loading$: Observable<boolean>;
+    saving$ = this.coursesService.loading$;
 
     constructor(
         private fb: FormBuilder,
@@ -68,6 +68,7 @@ export class EditCourseDialogComponent {
 
             this.coursesService.update(course);
 
+            // close immediately doing an optimistic save
             this.dialogRef.close();
         } else if (this.mode == 'create') {
 
