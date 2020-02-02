@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component} from '@angular/core';
 import {compareCourses, Course} from '../model/course';
 import {Observable} from "rxjs";
 import {defaultDialogConfig} from '../shared/default-dialog-config';
@@ -17,7 +17,7 @@ import {selectAdvancedCourses, selectBeginnerCourses, selectPromoTotal} from '..
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent {
 
     promoTotal$: Observable<number>;
 
@@ -30,21 +30,12 @@ export class HomeComponent implements OnInit {
       private dialog: MatDialog,
       private store: Store<AppState>) {
 
-    }
-
-    ngOnInit() {
-      this.reload();
-    }
-
-  reload() {
-
         this.beginnerCourses$ = this.store.pipe(select(selectBeginnerCourses));
 
         this.advancedCourses$ = this.store.pipe(select(selectAdvancedCourses));
 
         this.promoTotal$ = this.store.pipe(select(selectPromoTotal));
-
-  }
+    }
 
   onAddCourse() {
 

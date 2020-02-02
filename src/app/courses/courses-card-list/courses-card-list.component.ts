@@ -14,9 +14,6 @@ export class CoursesCardListComponent implements OnInit {
     @Input()
     courses: Course[];
 
-    @Output()
-    courseChanged = new EventEmitter();
-
     constructor(
       private dialog: MatDialog ) {
     }
@@ -35,9 +32,7 @@ export class CoursesCardListComponent implements OnInit {
           mode: 'update'
         };
 
-        this.dialog.open(EditCourseDialogComponent, dialogConfig)
-          .afterClosed()
-          .subscribe(() => this.courseChanged.emit());
+        this.dialog.open(EditCourseDialogComponent, dialogConfig);
 
     }
 
