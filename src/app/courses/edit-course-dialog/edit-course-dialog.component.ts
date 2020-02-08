@@ -2,9 +2,15 @@ import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Course} from '../model/course';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {Observable} from 'rxjs';
-import {CoursesHttpService} from '../services/courses-http.service';
+import {Subject, Observable, combineLatest} from 'rxjs';
 import {CourseEntityService} from '../services/course-entity.service';
+import { map, exhaustMap, tap, filter, startWith } from 'rxjs/operators';
+import { ErrorPolicyService, SanitizedError} from '../../error-handling';
+
+interface ViewModel {
+    saving: boolean;
+    saveError?: SanitizedError;
+}
 
 @Component({
     selector: 'course-dialog',
@@ -22,13 +28,15 @@ export class EditCourseDialogComponent {
 
     mode: 'create' | 'update';
 
-    saving$ = this.coursesService.loading$;
+    saves = new Subject<any>();
+    vm$: Observable<ViewModel>;
 
     constructor(
         private fb: FormBuilder,
         private dialogRef: MatDialogRef<EditCourseDialogComponent>,
         @Inject(MAT_DIALOG_DATA) data,
-        private coursesService: CourseEntityService) {
+        private coursesService: CourseEntityService,
+        private errorPolicy: ErrorPolicyService) {
 
         this.dialogTitle = data.dialogTitle;
         this.course = data.course;
@@ -51,42 +59,45 @@ export class EditCourseDialogComponent {
                 iconUrl: ['', Validators.required]
             });
         }
+
+        const saves$ = this.saves.pipe(
+            map<any, Course>(() => ({
+                ...this.course,
+                ...this.form.value
+            })),
+            exhaustMap(course =>
+                this.doSave(course).pipe(this.errorPolicy.catchHandle())
+            ),
+            tap(result => {
+                if ((result instanceof SanitizedError)) { return; }
+                this.dialogRef.close();
+            })
+        );
+
+        const saveErrors$ = saves$.pipe(
+            filter(SanitizedError.is),
+            startWith(null)
+        );
+
+        const saving$ = this.coursesService.loading$;
+
+        this.vm$ = combineLatest(saving$, saveErrors$).pipe(
+            map(([saving, saveError]) => ({
+                saving,
+                saveError
+            })),
+            startWith<ViewModel>({
+                saving: false,
+                saveError: null
+            })
+        );
     }
 
     onClose() {
         this.dialogRef.close();
     }
 
-    onSave() {
-
-        const course: Course = {
-            ...this.course,
-            ...this.form.value
-        };
-
-        if (this.mode == 'update') {
-
-            this.coursesService.update(course);
-
-            // close immediately doing an optimistic save
-            this.dialogRef.close();
-        } else if (this.mode == 'create') {
-
-            this.coursesService.add(course)
-                .subscribe(
-                    newCourse => {
-
-                        console.log('New Course', newCourse);
-
-                        this.dialogRef.close();
-
-                    }
-                );
-
-        }
-
-
+    private doSave(course: Course) {
+        return this.mode === 'create' ? this.coursesService.add(course) : this.coursesService.update(course);
     }
-
-
 }
