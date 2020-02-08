@@ -2,9 +2,15 @@ import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Course} from '../model/course';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {Subject} from 'rxjs';
+import {Subject, Observable, combineLatest} from 'rxjs';
 import {CourseEntityService} from '../services/course-entity.service';
-import { map, exhaustMap } from 'rxjs/operators';
+import { map, exhaustMap, tap, filter, startWith } from 'rxjs/operators';
+import { ErrorPolicyService, SanitizedError} from '../../error-handling';
+
+interface ViewModel {
+    saving: boolean;
+    saveError?: SanitizedError;
+}
 
 @Component({
     selector: 'course-dialog',
@@ -23,13 +29,14 @@ export class EditCourseDialogComponent {
     mode: 'create' | 'update';
 
     saves = new Subject<any>();
-    saving$ = this.coursesService.loading$;
+    vm$: Observable<ViewModel>;
 
     constructor(
         private fb: FormBuilder,
         private dialogRef: MatDialogRef<EditCourseDialogComponent>,
         @Inject(MAT_DIALOG_DATA) data,
-        private coursesService: CourseEntityService) {
+        private coursesService: CourseEntityService,
+        private errorPolicy: ErrorPolicyService) {
 
         this.dialogTitle = data.dialogTitle;
         this.course = data.course;
@@ -53,21 +60,37 @@ export class EditCourseDialogComponent {
             });
         }
 
-        // todo: handle errors:
-        // - show user message
-        // - allow user to retry
-        // (tech note: make sure observable chain does not terminate due to error )
-        this.saves.pipe(
+        const saves$ = this.saves.pipe(
             map<any, Course>(() => ({
                 ...this.course,
                 ...this.form.value
             })),
-            exhaustMap(course => this.doSave(course))
-          )
-          // no need to unsubscribe here as stream dies with component
-          .subscribe(_ => {
+            exhaustMap(course =>
+                this.doSave(course).pipe(this.errorPolicy.catchHandle())
+            ),
+            tap(result => {
+                if ((result instanceof SanitizedError)) { return; }
                 this.dialogRef.close();
-          });
+            })
+        );
+
+        const saveErrors$ = saves$.pipe(
+            filter(SanitizedError.is),
+            startWith(null)
+        );
+
+        const saving$ = this.coursesService.loading$;
+
+        this.vm$ = combineLatest(saving$, saveErrors$).pipe(
+            map(([saving, saveError]) => ({
+                saving,
+                saveError
+            })),
+            startWith<ViewModel>({
+                saving: false,
+                saveError: null
+            })
+        );
     }
 
     onClose() {
