@@ -69,7 +69,7 @@ export class EditCourseDialogComponent {
                 this.doSave(course).pipe(this.errorPolicy.catchHandle())
             ),
             tap(result => {
-                if ((result instanceof SanitizedError)) { return; }
+                if (SanitizedError.is(result)) { return; }
                 this.dialogRef.close();
             })
         );
