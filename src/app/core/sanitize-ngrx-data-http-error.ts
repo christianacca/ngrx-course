@@ -2,7 +2,7 @@ import { DataServiceError } from '@ngrx/data';
 import { SanitizedError } from '../error-handling';
 import { HttpErrorResponse } from '@angular/common/http';
 
-export const sanitizeNgrxDataHttpError = (err: any) => {
+export function sanitizeNgrxDataHttpError(err: any) {
     if (!(err instanceof DataServiceError)) { return undefined; }
 
     return new SanitizedError({
@@ -18,4 +18,4 @@ export const sanitizeNgrxDataHttpError = (err: any) => {
             return true;
         }
     }
-};
+}

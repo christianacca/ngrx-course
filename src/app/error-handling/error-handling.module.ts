@@ -1,15 +1,26 @@
-import { NgModule, Optional, SkipSelf } from '@angular/core';
+import { NgModule, ModuleWithProviders } from '@angular/core';
 import { ErrorMessageTranslationService, DefaultErrorMessageTranslationService } from './error-message-translation.service';
+import { ErrorHandlingModuleConfig } from './error-handling-module.config';
+import { SANITIZER_FUNC_ARRAY } from './sanitizer-func-token';
+import { ErrorSanitizerFactoryService } from './error-sanitizer-factory.service';
 
 @NgModule({
-    providers: [
-        { provide: ErrorMessageTranslationService, useClass: DefaultErrorMessageTranslationService }
-    ]
 })
 export class ErrorHandlingModule {
-    constructor(@Optional() @SkipSelf() parentModule: ErrorHandlingModule) {
-        if (parentModule) {
-            throw new Error('ErrorHandlingModule is already loaded. Import it in the ErrorHandlingModule only');
-        }
+    static forRoot(config: ErrorHandlingModuleConfig = {}): ModuleWithProviders {
+        return {
+            ngModule: ErrorHandlingModule,
+            providers: [
+                ErrorSanitizerFactoryService,
+                {
+                    provide: ErrorMessageTranslationService,
+                    useClass: config.translatorType ? config.translatorType : DefaultErrorMessageTranslationService 
+                },
+                config.sanitizers ? [{
+                    provide: SANITIZER_FUNC_ARRAY,
+                    useValue: config.sanitizers
+                }] : []
+            ]
+        };
     }
 }

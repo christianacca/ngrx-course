@@ -1,20 +1,19 @@
-import { ErrorHandler, Injectable, Inject, Optional } from '@angular/core';
+import { ErrorHandler, Injectable } from '@angular/core';
 import { catchHandleError, catchHandleRethrowError, catchHandleSwallowError, handleError, ErrorHandlerOptions } from './operators';
 import { ErrorMessageTranslationService } from './error-message-translation.service';
-import { SanitizedError, SanitizerFunc } from './sanitized-error';
-import { SANITIZER_FUNC } from './sanitizer-func-token';
+import { ErrorSanitizerFactoryService } from './error-sanitizer-factory.service';
 
 @Injectable({providedIn: 'root'})
 export class ErrorPolicyService {
     private options: ErrorHandlerOptions = {
         translator: this.errorTranslationService.translate.bind(this.errorTranslationService),
-        sanitizer: SanitizedError.createCompositeSanitizer(this.sanitizerFuncs)
+        sanitizer: this.errorSanitizerFactoryService.getSanitizer()
     };
 
     constructor(
         private globalHandler: ErrorHandler,
         private errorTranslationService: ErrorMessageTranslationService,
-        @Optional() @Inject(SANITIZER_FUNC) private sanitizerFuncs: SanitizerFunc[]) {
+        private errorSanitizerFactoryService: ErrorSanitizerFactoryService) {
     }
     catchHandle<T>() {
         return catchHandleError<T>(this.globalHandler, this.options);
