@@ -23,7 +23,6 @@ import {MatProgressSpinnerModule} from '@angular/material';
 import {metaReducers, reducers} from './reducers';
 import {AuthGuard} from './auth/auth.guard';
 import {EntityDataModule} from '@ngrx/data';
-import {ErrorHandlingModule} from './error-handling';
 import { CoreModule } from './core';
 
 
@@ -72,7 +71,6 @@ const routes: Routes = [
             stateKey: 'router',
             routerState: RouterState.Minimal
         }),
-        ErrorHandlingModule,
         CoreModule, // critical this module is last so that we can override all other providers
     ],
     bootstrap: [AppComponent]
